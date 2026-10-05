@@ -1,0 +1,33 @@
+name: Nightly internship fetch
+
+# Runs overnight Toronto time (~3:00 AM EDT / ~2:00 AM EST) and commits the
+# refreshed postings back to data/. GitHub may delay scheduled runs, so treat
+# the time as approximate.
+on:
+  schedule:
+    - cron: "0 7 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Fetch Canada internship postings
+        run: python3 scripts/fetch_postings.py
+
+      - name: Commit updated data
+        run: |
+          git config user.name "internship-fetcher"
+          git config user.email "internship-fetcher@users.noreply.github.com"
+          git add data/postings.json data/meta.json
+          git diff --cached --quiet || git commit -m "nightly fetch $(date -u +%F)"
+          git push
